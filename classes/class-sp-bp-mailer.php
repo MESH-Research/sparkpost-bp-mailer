@@ -32,9 +32,10 @@ class SP_BP_PHPMailer extends BP_PHPMailer {
 				require_once ABSPATH . WPINC . '/class-phpmailer.php';
 				require_once ABSPATH . WPINC . '/class-smtp.php';
 			}
-
+		
 			//$phpmailer = new PHPMailer( true );
 			$phpmailer = new SparkPostHTTPMailer( true );
+			error_log(print_r($phpmailer,true));
 		}
 
 
@@ -56,7 +57,6 @@ class SP_BP_PHPMailer extends BP_PHPMailer {
 		$phpmailer->IsMail();
 		$phpmailer->CharSet = bp_get_option( 'blog_charset' );
 
-
 		/*
 		 * Content.
 		 */
@@ -72,19 +72,17 @@ class SP_BP_PHPMailer extends BP_PHPMailer {
 			$phpmailer->IsHTML( false );
 			$phpmailer->Body = $content_plaintext;
 		}
-
 		$recipient = $email->get_from();
 		try {
 			$phpmailer->SetFrom( $recipient->get_address(), $recipient->get_name(), false );
 		} catch ( phpmailerException $e ) {
+			error_log( $e );
 		}
-
 		$recipient = $email->get_reply_to();
 		try {
 			$phpmailer->addReplyTo( $recipient->get_address(), $recipient->get_name() );
 		} catch ( phpmailerException $e ) {
 		}
-
 		$recipients = $email->get_to();
 		foreach ( $recipients as $recipient ) {
 			try {
@@ -114,7 +112,6 @@ class SP_BP_PHPMailer extends BP_PHPMailer {
 			$phpmailer->AddCustomHeader( $name, $content );
 		}
 
-
 		/**
 		 * Fires after PHPMailer is initialised.
 		 *
@@ -126,11 +123,14 @@ class SP_BP_PHPMailer extends BP_PHPMailer {
 
 		/** This filter is documented in wp-includes/pluggable.php */
 		do_action_ref_array( 'phpmailer_init', array( &$phpmailer ) );
-
 		try {
-			return $phpmailer->Send();
-		} catch ( phpmailerException $e ) {
+			if ( ! empty( $phpmailer->getAllRecipientAddresses() ) ) {
+				return $phpmailer->Send();
+			} 
+		} catch ( phpmailerException $e ) { 
+			error_log ( "bp reply by email " . $e->getMessage() . $email );
 			return new WP_Error( $e->getCode(), $e->getMessage(), $email );
+			
 		}
 	}
 
